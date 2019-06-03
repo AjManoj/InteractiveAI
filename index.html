@@ -1,0 +1,251 @@
+<body>
+
+    <style>
+        .operation,
+        .operationDescription,
+        .operationmodifiers {
+            display: flex;
+            justify-content: space-between;
+            margin: auto;
+            padding: 2rem;
+            padding-bottom: 0.2rem;
+        }
+
+        .operationmodifiers {
+            padding-top: 0.4rem;
+            font-weight: bolder;
+        }
+
+        .input,
+        .modal,
+        .output {
+            min-width: 3em;
+            text-align: center;
+        }
+
+        input[type="number"] {
+            max-width: 3rem;
+            padding: 0.1rem;
+            line-height: 2rem;
+            text-align: center;
+        }
+
+        sub,
+        sup {
+            font-size: x-small;
+            letter-spacing: 0.1rem;
+            padding: 0.2rem;
+        }
+
+        .sample {
+            border: 1px solid #dfe1e5;
+            border-radius: 8px;
+            box-shadow: none;
+            padding-bottom: 2rem;
+        }
+        ::placeholder { /* Chrome, Firefox, Opera, Safari 10.1+ */
+            color:gray;
+            opacity: 1; /* Firefox */
+          }
+    </style>
+    <div class="sample">
+        <div class="operationDescription">
+    
+        </div>
+        <div class="operation">
+    
+        </div>
+        <!--div class="operationmodifiers">
+            <div class="input">
+                +
+            </div>
+            <div class="modal">
+    
+            </div>
+            <div class="output">
+                +
+            </div>
+        </div-->
+    </div>
+    <template id="operationDescription">
+        <div class="input">
+            (x<sub>1x1</sub>)<sup>T</sup>
+        </div>
+        <div class="modal">
+            f(x)<sub>1x1</sub>
+        </div>
+        <div class="output">
+            y<sub>1x1</sub>
+        </div>
+    </template>
+    <template id="operation">
+        <div class="input">
+
+        </div>
+        <div class="modal">
+
+        </div>
+        <div class="output">
+
+        </div>
+    </template>
+    <template id="table">
+        
+    </template>
+
+
+
+    <script src="tf.min.js"> </script>
+  <!-- Import tfjs-vis -->
+  <script src="tfjs-vis.js"></script>
+
+
+    <script>
+
+        function setoperationDescription(inputs, outputs) {
+
+
+            var operationDescription = document.querySelector(".operationDescription");
+            var template = document.querySelector('#operationDescription');
+            var clone = document.importNode(template.content, true);
+
+            var input = clone.querySelector(".input")
+            input.innerHTML = `(x<sub>${inputs.length}x${1}</sub>)<sup>T</sup>`
+            operationDescription.append(input)
+
+            var modal = clone.querySelector(".modal")
+            modal.innerHTML = `f(x)<sub>${inputs.length}x${outputs.length}</sub>`
+            operationDescription.append(modal)
+
+            var output = clone.querySelector(".output")
+            output.innerHTML = `y<sub>${outputs.length}x${1}</sub>`
+            operationDescription.append(output)
+        }
+        
+        function setoperation(inputs, outputs) {
+
+            var uiElements={
+                input:[],
+                f:[],
+                output:[]
+            }
+            var operation = document.querySelector(".operation");
+            var template = document.querySelector('#operation');
+            var clone = document.importNode(template.content, true);
+            var uncodeList=['\u2080','\u2081','\u2082','\u2083','\u2084','\u2085','\u2086','\u2087','\u2088','\u2089']
+            var input = clone.querySelector(".input")
+            for (i = 0; i < inputs.length; i++) {
+                var inputEl = document.createElement('input');
+                inputEl.setAttribute('type', 'number');
+                inputEl.setAttribute('placeholder',`x${uncodeList[i]}`);
+                input.appendChild(inputEl);
+                input.appendChild(document.createElement('br'));
+                uiElements.input.push(inputEl)
+            }
+            operation.append(input)
+
+            var modal = clone.querySelector(".modal")
+            for (i = 0; i < inputs.length; i++) {
+                var row=[]
+                for (j = 0; j < outputs.length; j++) {
+                    var inputEl = document.createElement('input');
+                    inputEl.setAttribute('type', 'number');
+                    inputEl.setAttribute('placeholder',`w${uncodeList[i]}${uncodeList[j]}`);
+                    modal.appendChild(inputEl);
+                    row.push(inputEl);
+                }
+                uiElements.f.push(row);
+                modal.appendChild(document.createElement('br'));
+            }
+            operation.append(modal)
+
+            var output = clone.querySelector(".output")
+            for (j = 0; j < outputs.length; j++) {
+                var inputEl = document.createElement('input');
+                inputEl.setAttribute('type', 'number');
+                inputEl.setAttribute('placeholder',`y${uncodeList[j]}`);
+                output.appendChild(inputEl);
+                output.appendChild(document.createElement('br'));
+                uiElements.output.push(inputEl)
+            }
+            operation.append(output)
+            return uiElements;
+        }
+       
+        
+         
+        
+        function setupModel(x,y){
+
+            const model = tf.sequential();
+            model.add(tf.layers.dense({units: 1, inputShape: [1]}));
+
+            // Prepare the model for training: Specify the loss and the optimizer.
+            model.compile({loss: 'meanSquaredError', optimizer: 'sgd'});
+
+            // Generate some synthetic data for training.
+            
+
+            return model;
+        }
+
+        function setUpUI(){
+            const x=[1, 2, 3, 4]
+            const y=[1, 3, 5, 7]
+            
+            const xs = tf.tensor2d(x, [4, 1]);
+            const ys = tf.tensor2d(y, [4, 1]);
+            var model=setupModel(x,y)
+            model.fit(xs, ys).then(() => {
+                // Use the model to do inference on a data point the model hasn't seen before:
+                // Open the browser devtools to see the output
+                model.predict(tf.tensor2d([5], [1, 1])).print();
+                model.getWeights()[0].array().then(v=>console.log(v))
+            });
+            setoperationDescription(x[0] instanceof Array?x[0]:[x],y[0] instanceof Array?y[0]:[y]);
+            setoperation(x[0] instanceof Array?x[0]:[x],x[0] instanceof Array? y[0]:[y]);
+        }
+        setUpUI()
+    
+    </script>
+
+
+    <script>
+        async function getData() {
+            const carsDataReq = await fetch('https://storage.googleapis.com/tfjs-tutorials/carsData.json');  
+            const carsData = await carsDataReq.json();  
+            const cleaned = carsData.map(car => ({
+              mpg: car.Miles_per_Gallon,
+              horsepower: car.Horsepower,
+            }))
+            .filter(car => (car.mpg != null && car.horsepower != null));
+            
+            return cleaned;
+        }
+
+        async function run() {
+            // Load and plot the original input data that we are going to train on.
+            const data = await getData();
+            const values = data.map(d => ({
+              x: d.horsepower,
+              y: d.mpg,
+            }));
+          
+            tfvis.render.scatterplot(
+              {name: 'Horsepower v MPG'},
+              {values}, 
+              {
+                xLabel: 'Horsepower',
+                yLabel: 'MPG',
+                height: 300
+              }
+            );
+          
+            // More code will be added below
+        }
+        //document.addEventListener('DOMContentLoaded', run);
+         
+    </script>
+
+
+</body>
